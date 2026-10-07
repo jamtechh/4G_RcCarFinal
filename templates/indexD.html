@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>RC Car Control</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style type="text/css">
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+            background: #f5f0f9;
+        }
+        h2 {
+            text-align: center;
+            margin: 20px;
+        }
+        img {
+            display: block;
+            margin: 0 auto 20px auto;
+            max-width: 90%;
+        }
+        .joystick-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            touch-action: none; /* Prevents scrolling while dragging */
+        }
+        #joystick-base {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            background: #e0e0e0;
+            border: 4px solid #333;
+            border-radius: 12px; /* Square box with slightly rounded corners */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        #joystick-stick {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background: #007bff;
+            border: 3px solid #0056b3;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            left: 205px; /* Centered: (300 - 90) / 2 */
+            top: 205px;
+        }
+        .button-panel {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h2>RC Car Live Stream</h2>
+    <img src="http://192.168.0.74:8080/stream" width="640" height="480"><br>
+
+    <!-- Box Joystick Container -->
+    <div class="joystick-container">
+        <div id="joystick-base">
+            <div id="joystick-stick"></div>
+        </div>
+    </div>
+
+    <div class="button-panel">
+        <button type="button" class="btn btn-primary">Primary</button>
+        <button type="button" class="btn btn-secondary">Secondary</button>
+        <button type="button" class="btn btn-success">Success</button>
+        <button type="button" class="btn btn-danger">Danger</button>
+        <button type="button" class="btn btn-warning">Warning</button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let currentThrottle = 0;
+        let currentTurn = 0;
+
+        const base = document.getElementById('joystick-base');
+        const stick = document.getElementById('joystick-stick');
+
+        const maxTravel = 205; // Maximum offset along either axis (500px base - 90px stick) / 2
+        const centerPos = 205; 
+        const deadzone = 5;    // Deadzone in pixels around center
+
+        let active = false;
+
+        base.addEventListener('mousedown', startDrag);
+        base.addEventListener('touchstart', startDrag, { passive: false });
+
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, { passive: false });
+
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function startDrag(e) {
+            active = true;
+            moveDrag(e);
+        }
+
+        function moveDrag(e) {
+            if (!active) return;
+            e.preventDefault();
+
+            const rect = base.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // Raw delta offsets from center
+            let deltaX = clientX - (rect.left + rect.width / 2);
+            let deltaY = clientY - (rect.top + rect.height / 2);
+
+            // Clamp independently on X and Y to create a square boundary
+            deltaX = Math.max(-maxTravel, Math.min(maxTravel, deltaX));
+            deltaY = Math.max(-maxTravel, Math.min(maxTravel, deltaY));
+
+            // Move the stick visually
+            stick.style.left = `${centerPos + deltaX}px`;
+            stick.style.top = `${centerPos + deltaY}px`;
+
+            // Calculate independent normalized values (-100 to 100)
+            let turnVal = Math.round((deltaX / maxTravel) * 70);
+            let throttleVal = Math.round((-deltaY / maxTravel) * 80);
+
+            // Apply deadzone around zero
+            currentTurn = Math.abs(deltaX) < deadzone ? 0 : turnVal;
+            currentThrottle = Math.abs(deltaY) < deadzone ? 0 : throttleVal;
+
+            sendDriveCommand();
+        }
+
+        function endDrag() {
+            if (!active) return;
+            active = false;
+
+            // Return to center
+            stick.style.left = `${centerPos}px`;
+            stick.style.top = `${centerPos}px`;
+
+            currentThrottle = 0;
+            currentTurn = 0;
+            sendDriveCommand();
+        }
+        
+        // --- Configurable Keyboard Speed & Steering Values ---
+        let KEYBOARD_THROTTLE = 50; // Change this to adjust forward/backward magnitude
+        let KEYBOARD_TURN = 50;     // Change this to adjust left/right magnitude
+
+        // --- Keyboard Arrow Key Controls ---
+        const keyState = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key in keyState) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault(); // Prevents page scrolling
+                }
+                if (!keyState[e.key]) {
+                    keyState[e.key] = true;
+                    updateKeyboardDrive();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key in keyState) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                }
+                keyState[e.key] = false;
+                updateKeyboardDrive();
+            }
+        });
+
+        function updateKeyboardDrive() {
+            // Determine Throttle (Forward/Backward)
+            if (keyState.ArrowUp && !keyState.ArrowDown) {
+                currentThrottle = KEYBOARD_THROTTLE;
+            } else if (keyState.ArrowDown && !keyState.ArrowUp) {
+                currentThrottle = -KEYBOARD_THROTTLE;
+            } else {
+                currentThrottle = 0;
+            }
+
+            // Determine Turn (Left/Right)
+            if (keyState.ArrowLeft && !keyState.ArrowRight) {
+                currentTurn = -KEYBOARD_TURN;
+            } else if (keyState.ArrowRight && !keyState.ArrowLeft) {
+                currentTurn = KEYBOARD_TURN;
+            } else {
+                currentTurn = 0;
+            }
+
+            // Scale visual stick movement dynamically based on chosen speed/turn settings
+            const kbX = (currentTurn / 100) * maxTravel;
+            const kbY = (-currentThrottle / 100) * maxTravel;
+
+            stick.style.left = `${centerPos + kbX}px`;
+            stick.style.top = `${centerPos + kbY}px`;
+
+            sendDriveCommand();
+        }
+
+        function sendDriveCommand() {
+            let cmd = "";
+            if (currentThrottle > 0) cmd += "F" + currentThrottle;
+            else if (currentThrottle < 0) cmd += "B" + Math.abs(currentThrottle);
+
+            if (currentTurn > 0) {
+                if (cmd.length > 0) cmd += " ";
+                cmd += "R" + currentTurn;
+            } else if (currentTurn < 0) {
+                if (cmd.length > 0) cmd += " ";
+                cmd += "L" + Math.abs(currentTurn);
+            }
+
+            if (cmd === "") cmd = "F0 L0";
+
+            socket.emit('drive_command', cmd);
+        }
+    </script>
+</body>
+</html>

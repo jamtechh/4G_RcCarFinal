@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>RC Car Control</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <style type="text/css">
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            background: #f5f0f9;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 20px;
+        }
+
+        img {
+            display: block;
+            margin: 0 auto;
+            max-width: 90%;
+        }
+        input[type=range] {
+          -webkit-appearance: none; /* Removes default styling */
+          width: 100%;
+          height: 30px; /* Increase height (thickness) */
+          background: transparent; /* So you can style the track */
+          margin: 10px 0;
+          touch-action: none; /* Better touch control */
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+          height: 50px;
+          width: 50px;
+          background: #fff0f0;
+          border-radius: 5px;
+          border: 2px solid #000;
+        }
+
+         input[type="range"] {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 20px; 
+          background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          height: 50px;
+          width: 50px;
+          /*margin-top: -5px;*/
+          background: #000;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid #f00;
+          display: hidden;
+        }
+
+        .throttle-container, .turn-container {
+            width: 50%;
+            float: left;
+            /*display: flex;*/
+            /*justify-content: center;*/
+            align-items: center;
+            height: 550px;
+        }
+
+        input[type=range] {
+        /*    -webkit-appearance: none;
+            appearance: none;*/
+            /*background: transparent;*/
+            cursor: pointer;
+            width: 80%;
+            height: 80%;
+            /*padding: 20px*/
+        }
+
+        input[type=range].vertical-slider {
+            /*writing-mode: bt-lr;*/
+            -webkit-appearance: slider-vertical;
+            /*width: 100px;*/
+            height: 90%;
+            /*transform: rotate(180deg);*/
+        }
+    </style>
+</head>
+
+<body>
+    <h2>RC Car Live Stream</h2>
+    <img src="http://192.168.0.74:8080/stream" width="640" height="480"><br>
+
+    <div class="control-panel">
+
+        <!-- Left: Vertical throttle -->
+        <div class="throttle-container">
+            <input id="throttle" class="vertical-slider" type="range" min="-100" max="100" value="0"
+                   oninput="sendThrottle(this.value)" onmouseup="resetThrottle()" ontouchend="resetThrottle()">
+        </div>
+
+        <!-- Right: Horizontal turn -->
+        <div class="turn-container">
+            <input id="turn" class="horizontal-slider" type="range" min="-100" max="100" value="0"
+                   oninput="sendTurn(this.value)" onmouseup="resetTurn()" ontouchend="resetTurn()">
+        </div>
+        <button type="button" class="btn btn-primary">Primary</button>
+        <button type="button" class="btn btn-secondary">Secondary</button>
+        <button type="button" class="btn btn-success">Success</button>
+        <button type="button" class="btn btn-danger">Danger</button>
+        <button type="button" class="btn btn-warning">Warning</button>
+    </div>
+
+    <script>
+        function sendCommand(cmd) {
+            fetch('/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'cmd=' + cmd
+            });
+        }
+
+        function sendThrottle(val) {
+            val = parseInt(val);
+            if (val > 0) sendCommand("f" + val);
+            else if (val < 0) sendCommand("b" + Math.abs(val));
+        }
+
+        function sendTurn(val) {
+            val = parseInt(val);
+            if (val > 0) sendCommand("R" + val);
+            else if (val < 0) sendCommand("L" + Math.abs(val));
+        }
+
+        function resetThrottle() {
+            document.getElementById("throttle").value = 0;
+            sendCommand("b0");
+        }
+
+        function resetTurn() {
+            document.getElementById("turn").value = 0;
+            sendCommand("L0");
+        }
+    </script>
+</body>
+</html>

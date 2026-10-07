@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Car Control</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+<body>
+    <h2>RC Car Live Stream</h2>
+
+<div class="main-container">
+    <div class="video-section">
+        <img src="http://192.168.0.74:8080/stream" width="640" height="480" alt="RC Car Live Stream">
+    </div>
+
+    <div class="control-section">
+        <h3>Controls</h3>
+
+        <div class="joystick-container">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+
+        <div class="slider-panel">
+            <div class="slider-group">
+                <div class="slider-group">
+                    <label for="masterRange">
+                        Max Speed / Turn: <span id="masterVal">25</span>%
+                    </label>
+                    <input type="range" id="masterRange" min="0" max="100" value="25">
+                </div>
+                <label for="throttleRange">
+                    Throttle (Speed): <span id="throttleVal">25</span>%
+                </label>
+                <input type="range" id="throttleRange" min="0" max="100" value="25">
+            </div>
+
+            <div class="slider-group">
+                <label for="turnRange">
+                    Turn Sensitivity: <span id="turnVal">25</span>%
+                </label>
+                <input type="range" id="turnRange" min="0" max="100" value="25">
+            </div>
+
+            <div class="slider-group">
+                <label for="cameraRange">
+                    Camera Angle: <span id="cameraVal">50</span>
+                </label>
+                <input type="range" id="cameraRange" min="0" max="100" value="50">
+            </div>
+        </div>
+
+        <div class="button-panel">
+            <button type="button" class="btn btn-primary">Primary</button>
+            <button type="button" class="btn btn-secondary">Secondary</button>
+            <button type="button" class="btn btn-success">Success</button>
+            <button type="button" class="btn btn-danger">Danger</button>
+            <button type="button" class="btn btn-warning">Warning</button>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <h3>Additional Controls / Information</h3>
+        <!-- ADDED BELOW: Log output display box -->
+        <div id="command-log" style="height: 250px; overflow-y: auto; background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 12px; border-radius: 6px; margin-top: 10px; line-height: 1.5; white-space: pre-wrap;">
+            <div>Log initialized...</div>
+        </div>
+        
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

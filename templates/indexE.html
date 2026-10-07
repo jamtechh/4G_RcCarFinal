@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Car Control</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" crossorigin="anonymous">
+    <style type="text/css">
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f0f9;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Grid Layout: Main section on left/top, Sidebar on right/bottom */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 640px;
+            text-align: center;
+        }
+
+        .video-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Camera slider container matches full width of the video section */
+        .camera-slider-container {
+            width: 100%;
+            max-width: 640px; /* Matches video-container max-width */
+            margin: 15px auto 25px auto;
+            background: #ffffff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box; /* Ensures padding is included in total width */
+        }
+
+        /* Forces input range slider to stretch full width */
+        .camera-slider-container input[type="range"] {
+            width: 100%;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .joystick-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            touch-action: none;
+            width: 100%;
+        }
+
+        #joystick-base {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 500px;
+            background: #e0e0e0;
+            border: 4px solid #333;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        #joystick-stick {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background: #007bff;
+            border: 3px solid #0056b3;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            left: 205px;
+            top: 205px;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: fit-content;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .button-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .button-panel .btn {
+            flex: 1 1 40%;
+        }
+
+        /* Mobile/Tablet Responsiveness */
+        @media (max-width: 991px) {
+            .app-layout {
+                grid-template-columns: 1fr; /* Stack into single column */
+            }
+
+            #joystick-base {
+                height: 350px; /* Scale down joystick slightly for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>RC Car Live Stream</h2>
+
+    <div class="app-layout">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="video-container">
+                <img src="http://192.168.0.74:8080/stream" alt="Live Stream">
+            </div>
+
+            <!-- 3rd Horizontal Slider below video -->
+            <div class="camera-slider-container">
+                <label for="camera-slider" class="d-flex justify-content-between font-weight-bold">
+                    <span>Camera Angle / Servo (C)</span>
+                    <span id="cam-val">C0</span>
+                </label>
+                <input type="range" class="custom-range" id="camera-slider" min="0" max="100" value="0">
+            </div>
+
+            <!-- Box Joystick Container -->
+            <div class="joystick-container">
+                <div id="joystick-base">
+                    <div id="joystick-stick"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Section -->
+        <div class="sidebar">
+            <h4 class="text-center">Control Panel</h4>
+            <hr class="mt-0">
+
+            <!-- Non-returning Keyboard Speed Slider -->
+            <div class="control-group">
+                <label for="speed-slider">
+                    <span>Keyboard Speed</span>
+                    <span id="speed-val">50</span>
+                </label>
+                <input type="range" class="custom-range" id="speed-slider" min="0" max="100" value="50">
+            </div>
+
+            <!-- Non-returning Keyboard Turn Slider -->
+            <div class="control-group">
+                <label for="turn-slider">
+                    <span>Keyboard Steering</span>
+                    <span id="turn-val">50</span>
+                </label>
+                <input type="range" class="custom-range" id="turn-slider" min="0" max="100" value="50">
+            </div>
+
+            <hr>
+
+            <!-- Buttons Panel -->
+            <div class="button-panel">
+                <button type="button" class="btn btn-primary">Primary</button>
+                <button type="button" class="btn btn-secondary">Secondary</button>
+                <button type="button" class="btn btn-success">Success</button>
+                <button type="button" class="btn btn-danger">Danger</button>
+                <button type="button" class="btn btn-warning">Warning</button>
+            </div>
+            <!-- Keyboard Sensitivity Sliders -->
+            <div class="container mt-4" style="max-width: 500px;">
+                <div class="form-group row align-items-center">
+                    <label for="throttleRange" class="col-sm-5 col-form-label font-weight-bold">Throttle: <span id="throttleVal">50</span>%</label>
+                    <div class="col-sm-7">
+                        <input type="range" class="form-control-range" id="throttleRange" min="0" max="100" value="50">
+                    </div>
+                </div>
+                <div class="form-group row align-items-center">
+                    <label for="turnRange" class="col-sm-5 col-form-label font-weight-bold">Turn: <span id="turnVal">50</span>%</label>
+                    <div class="col-sm-7">
+                        <input type="range" class="form-control-range" id="turnRange" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Variable definitions
+        let currentThrottle = 0;
+        let currentTurn = 0;
+        let KEYBOARD_THROTTLE = 50;
+        let KEYBOARD_TURN = 50;
+
+        const base = document.getElementById('joystick-base');
+        const stick = document.getElementById('joystick-stick');
+
+        let maxTravel = 205; 
+        let centerPos = 205; 
+        const deadzone = 5; 
+
+        function updateJoystickDimensions() {
+            const rect = base.getBoundingClientRect();
+            centerPos = (rect.width - 90) / 2;
+            maxTravel = centerPos;
+            if (!active) {
+                stick.style.left = `${centerPos}px`;
+                stick.style.top = `${centerPos}px`;
+            }
+        }
+        window.addEventListener('resize', updateJoystickDimensions);
+        updateJoystickDimensions();
+
+        let active = false;
+
+        base.addEventListener('mousedown', startDrag);
+        base.addEventListener('touchstart', startDrag, { passive: false });
+
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, { passive: false });
+
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function startDrag(e) {
+            active = true;
+            moveDrag(e);
+        }
+
+        function moveDrag(e) {
+            if (!active) return;
+            e.preventDefault();
+
+            const rect = base.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            let deltaX = clientX - (rect.left + rect.width / 2);
+            let deltaY = clientY - (rect.top + rect.height / 2);
+
+            deltaX = Math.max(-maxTravel, Math.min(maxTravel, deltaX));
+            deltaY = Math.max(-maxTravel, Math.min(maxTravel, deltaY));
+
+            stick.style.left = `${centerPos + deltaX}px`;
+            stick.style.top = `${centerPos + deltaY}px`;
+
+            let turnVal = Math.round((deltaX / maxTravel) * 70);
+            let throttleVal = Math.round((-deltaY / maxTravel) * 80);
+
+            currentTurn = Math.abs(deltaX) < deadzone ? 0 : turnVal;
+            currentThrottle = Math.abs(deltaY) < deadzone ? 0 : throttleVal;
+
+            sendDriveCommand();
+        }
+
+        function endDrag() {
+            if (!active) return;
+            active = false;
+
+            stick.style.left = `${centerPos}px`;
+            stick.style.top = `${centerPos}px`;
+
+            currentThrottle = 0;
+            currentTurn = 0;
+            sendDriveCommand();
+        }
+
+        // --- Sidebar Sliders (Change Variables without Auto-Centering) ---
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValDisplay = document.getElementById('speed-val');
+        speedSlider.addEventListener('input', (e) => {
+            KEYBOARD_THROTTLE = parseInt(e.target.value, 10);
+            speedValDisplay.textContent = KEYBOARD_THROTTLE;
+        });
+
+        const turnSlider = document.getElementById('turn-slider');
+        const turnValDisplay = document.getElementById('turn-val');
+        turnSlider.addEventListener('input', (e) => {
+            KEYBOARD_TURN = parseInt(e.target.value, 10);
+            turnValDisplay.textContent = KEYBOARD_TURN;
+        });
+
+        // --- 3rd Horizontal Slider under Video (Emits C0 to C100) ---
+        const cameraSlider = document.getElementById('camera-slider');
+        const camValDisplay = document.getElementById('cam-val');
+        cameraSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const command = `C${val}`;
+            camValDisplay.textContent = command;
+            socket.emit('drive_command', command);
+        });
+
+        // --- Keyboard Controls ---
+        const keyState = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key in keyState) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                }
+                if (!keyState[e.key]) {
+                    keyState[e.key] = true;
+                    updateKeyboardDrive();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key in keyState) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                }
+                keyState[e.key] = false;
+                updateKeyboardDrive();
+            }
+        });
+
+        function updateKeyboardDrive() {
+            if (keyState.ArrowUp && !keyState.ArrowDown) {
+                currentThrottle = KEYBOARD_THROTTLE;
+            } else if (keyState.ArrowDown && !keyState.ArrowUp) {
+                currentThrottle = -KEYBOARD_THROTTLE;
+            } else {
+                currentThrottle = 0;
+            }
+
+            if (keyState.ArrowLeft && !keyState.ArrowRight) {
+                currentTurn = -KEYBOARD_TURN;
+            } else if (keyState.ArrowRight && !keyState.ArrowLeft) {
+                currentTurn = KEYBOARD_TURN;
+            } else {
+                currentTurn = 0;
+            }
+
+            const kbX = (currentTurn / 100) * maxTravel;
+            const kbY = (-currentThrottle / 100) * maxTravel;
+
+            stick.style.left = `${centerPos + kbX}px`;
+            stick.style.top = `${centerPos + kbY}px`;
+
+            sendDriveCommand();
+        }
+
+        function sendDriveCommand() {
+            let cmd = "";
+            if (currentThrottle > 0) cmd += "F" + currentThrottle;
+            else if (currentThrottle < 0) cmd += "B" + Math.abs(currentThrottle);
+
+            if (currentTurn > 0) {
+                if (cmd.length > 0) cmd += " ";
+                cmd += "R" + currentTurn;
+            } else if (currentTurn < 0) {
+                if (cmd.length > 0) cmd += " ";
+                cmd += "L" + Math.abs(currentTurn);
+            }
+
+            if (cmd === "") cmd = "F0 L0";
+
+            socket.emit('drive_command', cmd);
+        }
+    </script>
+</body>
+</html>
